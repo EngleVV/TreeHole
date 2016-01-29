@@ -1,0 +1,13 @@
+# cache for current jar dependency. DO NOT EDIT.
+# format is <lastModified> <length> <SHA-1> <path>
+# Encoding is UTF-8
+1452231657778 391834 f0a0d2e29ed910808c33135a3a5a51bba6358f7b C:\Users\Engle\workspace\myapp\libs\log4j-1.2.15.jar
+1453648879763 391834 f0a0d2e29ed910808c33135a3a5a51bba6358f7b C:\Users\Engle\workspace\MoodTreeHole\libs\log4j-1.2.15.jar
+1453648879766 25496 b353147a7d51fcfcd818d8aa6784839783db0915 C:\Users\Engle\workspace\MoodTreeHole\libs\slf4j-api-1.6.0.jar
+1452231657887 25496 b353147a7d51fcfcd818d8aa6784839783db0915 C:\Users\Engle\workspace\myapp\libs\slf4j-api-1.6.0.jar
+1453648879784 9753 eafed03e8c462b52b332368e08bbe305cfc12d51 C:\Users\Engle\workspace\MoodTreeHole\libs\slf4j-log4j12-1.6.1.jar
+1452231657918 9753 eafed03e8c462b52b332368e08bbe305cfc12d51 C:\Users\Engle\workspace\myapp\libs\slf4j-log4j12-1.6.1.jar
+1453648879706 177245 960a2c86c7974584a0dc0da7cf6983c510356e5f C:\Users\Engle\workspace\MoodTreeHole\libs\gson-1.5.jar
+1452231657762 177245 960a2c86c7974584a0dc0da7cf6983c510356e5f C:\Users\Engle\workspace\myapp\libs\gson-1.5.jar
+1453622926298 1157300 b1fe665b784aa7314d722b2ec17e77f83ba2e717 C:\Users\Engle\workspace\MoodTreeHole\libs\android-support-v4.jar
+1449840327382 1157300 b1fe665b784aa7314d722b2ec17e77f83ba2e717 C:\Users\Engle\workspace\myapp\libs\android-support-v4.jar

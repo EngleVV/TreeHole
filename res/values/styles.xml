@@ -1,0 +1,65 @@
+<resources>
+
+    <style name="AppBaseTheme" parent="android:Theme.Light"></style>
+
+    <!-- Application theme. -->
+    <style name="AppTheme" parent="AppBaseTheme">
+
+        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="titleStyle">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="mainPageLoginStyle">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="treeHoleTitleUsername">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/titleusername</item>
+    </style>
+
+    <style name="treeHoleUsername">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/brown</item>
+    </style>
+
+    <style name="treeHoleContent">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="treeHoleCount">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/gray</item>
+    </style>
+
+    <style name="commentUsername">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/brown</item>
+    </style>
+
+    <style name="commentTime">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/sixb</item>
+    </style>
+
+    <style name="commentFloor">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/sixb</item>
+    </style>
+
+    <style name="publicloadingProgressStyle">
+        <item name="android:maxWidth">108dip</item>
+        <item name="android:maxHeight">104dip</item>
+        <item name="android:indeterminateDrawable">@anim/wb_loading_frame</item>
+        <item name="android:minWidth">108dip</item>
+        <item name="android:minHeight">104dip</item>
+    </style>
+
+</resources>
