@@ -4,25 +4,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.aaa.moodtreehole.PraiseResult;
 import com.aaa.moodtreehole.R;
+import com.aaa.moodtreehole.adapters.CommentAdapter;
+import com.aaa.moodtreehole.common.utils.HttpUtil;
+import com.aaa.moodtreehole.common.utils.NetworkUtil;
+import com.aaa.moodtreehole.common.utils.StringUtil;
+import com.aaa.moodtreehole.enums.MessageWhatEnum;
 import com.aaa.moodtreehole.items.CommentItem;
-import com.aaa.moodtreehole.utils.HttpUtil;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.handmark.pulltorefresh.library.PullToRefreshBase;
@@ -30,18 +33,60 @@ import com.handmark.pulltorefresh.library.PullToRefreshBase.Mode;
 import com.handmark.pulltorefresh.library.PullToRefreshBase.OnRefreshListener;
 import com.handmark.pulltorefresh.library.PullToRefreshListView;
 
+/**
+ * 评论页面
+ * 
+ * @author Engle
+ * 
+ */
 public class CommentActivity extends Activity {
 
+	/** 滑动刷新列表 */
 	private PullToRefreshListView refreshView;
+
+	/** 评论内容列表 */
 	private ListView listViewComments;
-	private CommentsAdapter commentsAdapter;
+
+	/** 评论内容 */
+	private CommentAdapter commentAdapter;
+
+	/** treeHole点赞数 */
+	private TextView textViewTreeHolePraises;
+
+	/** treeHole用户名 */
+	private TextView textViewTreeHoleUsername;
+
+	/** treeHole内容 */
+	private TextView textViewTreeHoleContent;
+
+	/** 评论数 */
+	private TextView textViewTreeHoleComments;
+
+	/** 返回按钮 */
+	private ImageView imageViewBack;
+
+	/** 点赞按钮 */
+	private ImageView imageViewPraise;
+
+	/** 该条treeHole的具体数据 */
+	private String treeHoleUuid;
+	private String username;
+	private String content;
+	private int praises;
+	private int comments;
+
+	/** 评论数据 */
 	private List<CommentItem> commentsHistoryList;
+
+	/** 数据库分页 */
 	private int pageIndex = 0;
 
+	/** 消息处理 */
+	@SuppressLint("HandlerLeak")
 	private Handler handler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			if (0x001 == msg.what) {
+			if (MessageWhatEnum.GET_COMMENT_SUCCESS.getCode() == msg.what) {
 				Bundle bundle = msg.getData();
 				Gson gson = new Gson();
 				String strJson = bundle.getString("strJson");
@@ -49,90 +94,162 @@ public class CommentActivity extends Activity {
 						new TypeToken<List<CommentItem>>() {
 						}.getType());
 
-				convertTime(commentsList);
-
 				if (null == commentsHistoryList) {
 					commentsHistoryList = commentsList;
 				} else {
 					commentsHistoryList.addAll(commentsList);
 				}
 
-				commentsAdapter.setCommentsList(commentsHistoryList);
+				commentAdapter.setCommentsList(commentsHistoryList);
 				pageIndex++;
-				commentsAdapter.notifyDataSetChanged();
+				commentAdapter.notifyDataSetChanged();
 				refreshView.onRefreshComplete();
+			} else if (msg.what == MessageWhatEnum.PRAISE_SUCCESS.getCode()) {
+				Bundle bundle = msg.getData();
+				textViewTreeHolePraises
+						.setText("点赞" + bundle.getInt("praises"));
+			} else if (msg.what == MessageWhatEnum.NETWORK_EXCEPTION.getCode()) {
+				if (NetworkUtil.isConnectingToInternet(getApplicationContext())) {
+					Toast.makeText(getApplicationContext(), "服务器异常",
+							Toast.LENGTH_SHORT).show();
+				} else {
+					// 本地网络不通
+					Toast.makeText(getApplicationContext(), "请检查网络连接",
+							Toast.LENGTH_SHORT).show();
+				}
 			}
 		}
 	};
+
+	/**
+	 * 获取intent中传过来的数据
+	 */
+	private void getDataFromIntent() {
+		Intent intent = getIntent();
+		Bundle bundle = intent.getExtras();
+		treeHoleUuid = bundle.getString("itemUuid");
+		username = bundle.getString("username");
+		content = bundle.getString("content");
+		praises = bundle.getInt("praises");
+		comments = bundle.getInt("comments");
+	}
+
+	/**
+	 * 初始化视图控件
+	 */
+	private void initView() {
+		textViewTreeHoleUsername = (TextView) findViewById(R.id.treehole_username);
+		textViewTreeHoleContent = (TextView) findViewById(R.id.treehole_content);
+		textViewTreeHoleComments = (TextView) findViewById(R.id.treehole_comment_count);
+		textViewTreeHolePraises = (TextView) findViewById(R.id.treehole_praise_count);
+		imageViewBack = (ImageView) findViewById(R.id.comment_title_btn_back);
+		imageViewPraise = (ImageView) findViewById(R.id.treehole_btn_praise);
+	}
+
+	/**
+	 * 设置treeHole数据
+	 */
+	private void setTreeHole() {
+		textViewTreeHoleUsername.setText(username);
+		textViewTreeHoleContent.setText(content);
+		textViewTreeHolePraises.setText("点赞" + praises);
+		textViewTreeHoleComments.setText(" · 评论 " + comments);
+	}
+
+	/**
+	 * 设置返回按钮点击事件
+	 */
+	private void setBackButton() {
+		imageViewBack.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				finish();
+			}
+		});
+	}
+
+	/**
+	 * 设置滑动刷新视图
+	 * 
+	 * @param treeHoleUuid
+	 *            该条treeHole惟一id
+	 */
+	private void setRefreshView(final String treeHoleUuid) {
+		refreshView = (PullToRefreshListView) findViewById(R.id.commentList);
+		refreshView.setMode(Mode.BOTH);
+		listViewComments = refreshView.getRefreshableView();
+		commentAdapter = new CommentAdapter(null, this);
+		listViewComments.setAdapter(commentAdapter);
+		refreshView.setOnRefreshListener(new OnRefreshListener<ListView>() {
+			@Override
+			public void onRefresh(PullToRefreshBase<ListView> refreshView) {
+				if (refreshView.isHeaderShown()) {
+					// 下拉刷新目的是获取最新的数据,所以分页数置零,清除历史数据
+					pageIndex = 0;
+					commentsHistoryList = null;
+				}
+				getCommentsData(handler, treeHoleUuid);
+			}
+		});
+	}
+
+	/**
+	 * 点赞按钮事件
+	 * 
+	 * @param treeHoleUuid
+	 *            该条treeHole惟一id
+	 */
+	private void setPraiseButton(final String treeHoleUuid) {
+		imageViewPraise.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				praise(handler, treeHoleUuid);
+			}
+		});
+
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_comment);
 
-		Intent intent = getIntent();
-		Bundle bundle = intent.getExtras();
-		final String treeHoleUuid = bundle.getString("itemUuid");
-		String username = bundle.getString("username");
-		String content = bundle.getString("content");
-		int praises = bundle.getInt("praises");
-		int comments = bundle.getInt("comments");
-		TextView textViewTreeHoleUsername = (TextView) findViewById(R.id.treehole_username);
-		textViewTreeHoleUsername.setText(username);
-		TextView textViewTreeHoleContent = (TextView) findViewById(R.id.treehole_content);
-		textViewTreeHoleContent.setText(content);
-		TextView textViewTreeHolePraises = (TextView) findViewById(R.id.treehole_praise_count);
-		textViewTreeHolePraises.setText("点赞" + praises);
-		TextView textViewTreeHoleComments = (TextView) findViewById(R.id.treehole_comment_count);
-		textViewTreeHoleComments.setText(" · 评论 " + comments);
+		// 从intent获取传过来的数据
+		getDataFromIntent();
 
-		ImageView imageViewBack = (ImageView) findViewById(R.id.comment_title_btn_back);
-		imageViewBack.setOnClickListener(new OnClickListener() {
+		// 初始化视图
+		initView();
 
-			@Override
-			public void onClick(View v) {
-				finish();
-			}
-		});
+		// 设置treeHole
+		setTreeHole();
 
-		refreshView = (PullToRefreshListView) findViewById(R.id.commentList);
-		refreshView.setMode(Mode.BOTH);
-		listViewComments = refreshView.getRefreshableView();
+		// 设置返回按钮
+		setBackButton();
 
-		commentsAdapter = new CommentsAdapter(null, this);
-		listViewComments.setAdapter(commentsAdapter);
+		// 设置评论列表
+		setRefreshView(treeHoleUuid);
 
-		refreshView.setOnRefreshListener(new OnRefreshListener<ListView>() {
+		// 点赞按钮
+		setPraiseButton(treeHoleUuid);
 
-			@Override
-			public void onRefresh(PullToRefreshBase<ListView> refreshView) {
-
-				if (refreshView.isHeaderShown()) {
-					// 下拉刷新目的是获取最新的数据,所以分页数置零,清除历史数据
-					pageIndex = 0;
-					commentsHistoryList = null;
-
-				} else if (refreshView.isFooterShown()) {
-					// 上拉获取更多数据
-				}
-				getCommentsData(handler, treeHoleUuid);
-			}
-		});
-
+		// 获取评论数据
 		getCommentsData(handler, treeHoleUuid);
 	}
 
-	private void convertTime(List<CommentItem> list) {
-
-	}
-
+	/**
+	 * 从服务器获取评论数据
+	 * 
+	 * @param handler
+	 *            消息处理
+	 * @param treeHoleUuid
+	 *            该条treeHole惟一id
+	 */
 	private void getCommentsData(final Handler handler,
 			final String treeHoleUuid) {
 		new Thread() {
 			@Override
 			public void run() {
 				Looper.prepare();
-
 				try {
 					String url = HttpUtil.BASE_URL
 							+ "ClientLoadComments.action";
@@ -146,10 +263,13 @@ public class CommentActivity extends Activity {
 					Bundle bundle = new Bundle();
 					bundle.putString("strJson", strJson);
 					message.setData(bundle);
-					message.what = 0x001;
+					message.what = MessageWhatEnum.GET_COMMENT_SUCCESS
+							.getCode();
 					handler.sendMessage(message);
 				} catch (Exception e) {
-					e.printStackTrace();
+					// 网络异常
+					handler.sendEmptyMessage(MessageWhatEnum.NETWORK_EXCEPTION
+							.getCode());
 				}
 
 				Looper.loop();
@@ -157,124 +277,46 @@ public class CommentActivity extends Activity {
 		}.start();
 	}
 
-	public class CommentsAdapter extends BaseAdapter {
-
-		private List<CommentItem> commentsList;
-
-		private LayoutInflater inflater;
-
-		public CommentsAdapter(List<CommentItem> list, Context context) {
-			commentsList = list;
-			inflater = LayoutInflater.from(context);
-		}
-
-		/**
-		 * @return the commentsList
-		 */
-		public List<CommentItem> getCommentsList() {
-			return commentsList;
-		}
-
-		/**
-		 * @param commentsList
-		 *            the commentsList to set
-		 */
-		public void setCommentsList(List<CommentItem> commentsList) {
-			this.commentsList = commentsList;
-		}
-
-		/**
-		 * @return the inflater
-		 */
-		public LayoutInflater getInflater() {
-			return inflater;
-		}
-
-		/**
-		 * @param inflater
-		 *            the inflater to set
-		 */
-		public void setInflater(LayoutInflater inflater) {
-			this.inflater = inflater;
-		}
-
-		/*
-		 * 
-		 * @see android.widget.Adapter#getCount()
-		 */
-		@Override
-		public int getCount() {
-			if (null == commentsList)
-				return 0;
-			else {
-				System.out.println(commentsList.size());
-				return commentsList.size();
+	/**
+	 * 点赞并同步数据库数据
+	 * 
+	 * @param handler
+	 *            消息处理
+	 * @param uuid
+	 *            该条treeHole惟一id
+	 * @param position
+	 */
+	private void praise(final Handler handler, final String uuid) {
+		new Thread() {
+			@Override
+			public void run() {
+				Looper.prepare();
+				try {
+					String url = HttpUtil.BASE_URL + "ClientPraise";
+					Map<String, String> map = new HashMap<String, String>();
+					map.put("uuid", uuid);
+					String strJson = HttpUtil.postRequest(url, map);
+					if (StringUtil.contains(strJson, "\"result\":\"false\"")) {
+						// 服务器异常
+						handler.sendEmptyMessage(MessageWhatEnum.NETWORK_EXCEPTION
+								.getCode());
+					} else {
+						Gson gson = new Gson();
+						PraiseResult praiseResult = gson.fromJson(strJson,
+								PraiseResult.class);
+						Message message = new Message();
+						Bundle bundle = new Bundle();
+						bundle.putInt("praises", praiseResult.getPraises());
+						message.setData(bundle);
+						message.what = MessageWhatEnum.PRAISE_SUCCESS.getCode();
+						handler.sendMessage(message);
+					}
+				} catch (Exception e) {
+					handler.sendEmptyMessage(MessageWhatEnum.NETWORK_EXCEPTION
+							.getCode());
+				}
+				Looper.loop();
 			}
-		}
-
-		/*
-		 * 
-		 * @see android.widget.Adapter#getView(int, android.view.View,
-		 * android.view.ViewGroup)
-		 */
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			CommentHolder holder;
-			if (null == convertView) {
-				convertView = inflater.inflate(R.layout.simple_item_comment,
-						null);
-				holder = new CommentHolder();
-				holder.textViewUsername = (TextView) convertView
-						.findViewById(R.id.comment_username);
-				holder.textViewContent = (TextView) convertView
-						.findViewById(R.id.comment_content);
-				holder.textViewTime = (TextView) convertView
-						.findViewById(R.id.comment_time);
-				holder.textViewFloor = (TextView) convertView
-						.findViewById(R.id.comment_floor);
-				convertView.setTag(holder);
-			} else {
-				holder = (CommentHolder) convertView.getTag();
-			}
-
-			holder.textViewUsername.setText(commentsList.get(position)
-					.getUsername());
-			holder.textViewContent.setText(commentsList.get(position)
-					.getContent());
-			holder.textViewTime.setText(commentsList.get(position).getDate());
-			holder.textViewFloor.setText(String.valueOf(position + 1));
-
-			return convertView;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see android.widget.Adapter#getItem(int)
-		 */
-		@Override
-		public Object getItem(int position) {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see android.widget.Adapter#getItemId(int)
-		 */
-		@Override
-		public long getItemId(int position) {
-			// TODO Auto-generated method stub
-			return 0;
-		}
-
-	}
-
-	public class CommentHolder {
-		TextView textViewUsername;
-		TextView textViewContent;
-		TextView textViewTime;
-		TextView textViewFloor;
+		}.start();
 	}
 }

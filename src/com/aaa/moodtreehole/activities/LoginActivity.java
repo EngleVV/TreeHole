@@ -3,8 +3,8 @@ package com.aaa.moodtreehole.activities;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
@@ -23,9 +23,11 @@ import android.widget.Toast;
 import com.aaa.moodtreehole.GlobleData;
 import com.aaa.moodtreehole.LoginSession;
 import com.aaa.moodtreehole.R;
+import com.aaa.moodtreehole.common.utils.HttpUtil;
 import com.aaa.moodtreehole.common.utils.InputCheckUtil;
+import com.aaa.moodtreehole.common.utils.NetworkUtil;
 import com.aaa.moodtreehole.common.utils.StringUtil;
-import com.aaa.moodtreehole.utils.HttpUtil;
+import com.aaa.moodtreehole.enums.MessageWhatEnum;
 import com.google.gson.Gson;
 
 public class LoginActivity extends Activity {
@@ -36,51 +38,87 @@ public class LoginActivity extends Activity {
 	/** 写入preferences */
 	private Editor editor;
 
+	/** 登录按钮 */
 	private Button buttonLogin;
 
+	/** 注册按钮 */
+	private TextView textViewRegister;
+
+	/** 返回按钮 */
+	private ImageView imageViewBack;
+
+	/** 用户名输入框 */
+	private EditText editTextUsername;
+
+	/** 密码输入框 */
+	private EditText editTextPassword;
+
+	@SuppressLint("HandlerLeak")
 	private Handler handler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
-			if (msg.what == 0x123) {
+			if (msg.what == MessageWhatEnum.LOGIN_SUCCESS.getCode()) {
 				Toast.makeText(getApplicationContext(), "登陆成功",
 						Toast.LENGTH_SHORT).show();
 				finish();
-			} else if (msg.what == 0x456) {
+			} else if (msg.what == MessageWhatEnum.LOGIN_FAILURE.getCode()) {
 				// 登陆失败
 				buttonLogin.setText("登录");
 				Toast.makeText(getApplicationContext(), "密码错误,请重试",
 						Toast.LENGTH_SHORT).show();
 
-			} else if (msg.what == 0x789) {
+			} else if (msg.what == MessageWhatEnum.NETWORK_EXCEPTION.getCode()) {
 				// 网络异常
 				buttonLogin.setText("登录");
-				Toast.makeText(getApplicationContext(), "网络异常,请重试",
-						Toast.LENGTH_SHORT).show();
+				if (NetworkUtil.isConnectingToInternet(getApplicationContext())) {
+					Toast.makeText(getApplicationContext(), "服务器异常,请重试",
+							Toast.LENGTH_SHORT).show();
+				} else {
+					Toast.makeText(getApplicationContext(), "请检查网络连接",
+							Toast.LENGTH_SHORT).show();
+				}
 			}
 		}
 	};
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_login);
+	/**
+	 * 初始化视图页面
+	 */
+	@SuppressLint("CommitPrefEdits")
+	private void initView() {
 		buttonLogin = (Button) findViewById(R.id.login_btn_login);
+		textViewRegister = (TextView) findViewById(R.id.login_register);
+		imageViewBack = (ImageView) findViewById(R.id.login_title_btn_back);
 		sharedPreferences = getSharedPreferences("login_info", MODE_PRIVATE);
 		editor = sharedPreferences.edit();
 
-		// 设置返回按钮
-		setButtonBack(this);
+		editTextUsername = (EditText) findViewById(R.id.login_username);
+		editTextPassword = (EditText) findViewById(R.id.login_password);
 
-		// 设置登陆按钮响应事件
+	}
+
+	/**
+	 * 返回按钮
+	 */
+	private void setButtonBack() {
+		imageViewBack.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				finish();
+			}
+		});
+	}
+
+	/**
+	 * 设置登陆按钮
+	 */
+	private void setLoginButton() {
 		buttonLogin.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				final String username;
-				final String password;
-				EditText editTextUsername = (EditText) findViewById(R.id.login_username);
-				username = editTextUsername.getText().toString();
-				EditText editTextPassword = (EditText) findViewById(R.id.login_password);
-				password = editTextPassword.getText().toString();
+				final String username = editTextUsername.getText().toString();
+				final String password = editTextPassword.getText().toString();
+
 				if (InputCheckUtil.CheckUsername(username)) {
 					if (InputCheckUtil.CheckPassword(password)) {
 						new Thread() {
@@ -91,8 +129,6 @@ public class LoginActivity extends Activity {
 								Looper.loop();
 							}
 						}.start();
-						// finish();
-						// 此处等待,显示登录提示
 						buttonLogin.setText("登录中");
 					} else {
 						// 提示密码输入不合理
@@ -106,32 +142,47 @@ public class LoginActivity extends Activity {
 				}
 			}
 		});
+	}
+
+	/**
+	 * 设置注册按钮
+	 */
+	private void setRegisterButton() {
+		textViewRegister.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+
+			}
+		});
+
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_login);
+
+		// 初始化视图控件
+		initView();
+
+		// 设置返回按钮
+		setButtonBack();
+
+		// 设置登陆按钮响应事件
+		setLoginButton();
 
 		// 注册按钮
-		TextView textViewRegister = (TextView) findViewById(R.id.login_register);
-		textViewRegister.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				// Intent intent = new Intent(LoginActivity.this,
-				// RegisterActivity.class);
-				// startActivity(intent);
-			}
-		});
+		setRegisterButton();
 	}
 
-	private void setButtonBack(final Context context) {
-		ImageView imageViewBack = (ImageView) findViewById(R.id.login_title_btn_back);
-		imageViewBack.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				finish();
-			}
-		});
-	}
-
+	/**
+	 * 登录验证
+	 * 
+	 * @param username
+	 *            用户名
+	 * @param password
+	 *            密码
+	 */
 	private void login(String username, String password) {
 		// 登录代码
 		Map<String, String> map = new HashMap<String, String>();
@@ -155,15 +206,17 @@ public class LoginActivity extends Activity {
 				editor.putString("sessionId", loginSession.getSessionId());
 				editor.apply();
 
-				handler.sendEmptyMessage(0x123);
+				handler.sendEmptyMessage(MessageWhatEnum.LOGIN_SUCCESS
+						.getCode());
 			} else {
 				// 登录失败代码,密码错误
-				handler.sendEmptyMessage(0x456);
+				handler.sendEmptyMessage(MessageWhatEnum.LOGIN_FAILURE
+						.getCode());
 			}
 		} catch (Exception e) {
 			// 网络异常
-			handler.sendEmptyMessage(0x789);
+			handler.sendEmptyMessage(MessageWhatEnum.NETWORK_EXCEPTION
+					.getCode());
 		}
 	}
-
 }

@@ -11,9 +11,6 @@ import android.widget.TabHost.TabSpec;
 import android.widget.TextView;
 
 import com.aaa.moodtreehole.R;
-import com.aaa.moodtreehole.R.drawable;
-import com.aaa.moodtreehole.R.id;
-import com.aaa.moodtreehole.R.layout;
 import com.aaa.moodtreehole.fragments.FragmentTreeHole;
 
 public class MainActivity extends FragmentActivity {
@@ -50,7 +47,6 @@ public class MainActivity extends FragmentActivity {
 		imageView.setImageResource(image);
 		TextView textView = (TextView) view.findViewById(R.id.textview);
 		textView.setText(text);
-
 		return view;
 	}
 }

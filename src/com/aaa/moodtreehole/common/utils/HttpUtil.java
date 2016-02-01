@@ -1,14 +1,18 @@
 /**
  * 
  */
-package com.aaa.moodtreehole.utils;
+package com.aaa.moodtreehole.common.utils;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
@@ -23,7 +27,6 @@ import org.apache.http.util.EntityUtils;
 /**
  */
 public class HttpUtil {
-	// public static HttpClient httpClient = new DefaultHttpClient();
 	public static final String BASE_URL = "http://192.168.1.104:8080/Test/";
 
 	public static DefaultHttpClient getThreadSafeClient() {
@@ -55,25 +58,39 @@ public class HttpUtil {
 	}
 
 	/**
+	 * @throws IOException
+	 * @throws ClientProtocolException
 	 */
 	public static String postRequest(String url, Map<String, String> rawParams)
-			throws Exception {
+			throws ClientProtocolException, IOException {
 		HttpClient httpClient = getThreadSafeClient();
 		HttpPost post = new HttpPost(url);
 		List<NameValuePair> params = new ArrayList<NameValuePair>();
 		for (String key : rawParams.keySet()) {
 			params.add(new BasicNameValuePair(key, rawParams.get(key)));
 		}
-		post.setEntity(new UrlEncodedFormEntity(params, "utf-8"));
-		HttpResponse httpResponse = httpClient.execute(post);
+		try {
+			post.setEntity(new UrlEncodedFormEntity(params, "utf-8"));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		HttpResponse httpResponse = null;
+		httpResponse = httpClient.execute(post);
+
 		if (httpResponse.getStatusLine().getStatusCode() == 200) {
+			String result;
 			try {
-				String result = EntityUtils.toString(httpResponse.getEntity(),
-						"utf-8");
+				result = EntityUtils
+						.toString(httpResponse.getEntity(), "utf-8");
 				return result;
-			} catch (Exception e) {
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+
 		}
 		return null;
 	}
